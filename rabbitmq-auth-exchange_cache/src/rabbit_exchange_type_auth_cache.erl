@@ -66,11 +66,8 @@ route(X,D=#delivery{message = #basic_message{routing_keys = Routes}}) ->
 	
 	inets:start(),
 	lager:start(),
-	%lager:warning("start "),
  	List=rabbit_exchange_type_topic:route(X,D), %% Возвращает список очередей, удовлетворяющих логике поведения точки обмена типа "topic"  
 	IdPubl = hd( binary:split(hd(Routes),<<".">>,[])), %% идентификатор генератора
-	% lager:warning("idPubl ~p", [IdPubl]),
-	%lager:warning("idPubl ~p", [List]),
 	NewQueues=allowedQueue(X#exchange.name,IdPubl,List,[]), 
 	NewQueues.
 
@@ -87,8 +84,6 @@ allowedQueue(ExName,IdPubl,[CurrentQueue|Tail],NewList)->
         Args=ets:select(rabbit_route, [{MatchHead, [], ['$1']}]),
 	lager:warning("Args ~p", [Args]),
 	{_,_,IdCons} = hd(hd(Args)), %%идентификатор подписчика
-	 lager:warning("idCons ~p", [IdCons]),
-	lager:warning("idPubl ~p", [IdPubl]),
 	%% Ответ true-имеет доступ  или false - не имеет.
 	Allowed = isAllowed(IdPubl,IdCons),
 	case Allowed of
@@ -99,24 +94,17 @@ allowedQueue(ExName,IdPubl,[CurrentQueue|Tail],NewList)->
 
 %% Функция, определяющая имеет ли доступ конкретный подписчик к данному сообщению
 isAllowed(_IdPubl,_IdCons) ->
- %lager:warning("inISAllowed ~p", []),
-
-  InCache = ets:lookup(?ETS_TABLE,_IdCons),
+  InCache = ets:lookup(?ETS_TABLE,_IdCons), %% проверка кэша
   case InCache of
-  [] ->  AccessAllowed = requestServer(_IdCons),
-	%{ok,{_,_,Ans}} = httpc:request("http://bg502.ru:80/idCons="++binary_to_list(_IdCons)),
- 	%lager:warning("SEE HERE ~p", [Ans]),
-	%lager:warning("decode ~p", [rabbit_json:decode(list_to_binary(Ans))]),
-	%#{<<"accessTo">> := AccessAllowed}=rabbit_json:decode(list_to_binary(Ans)),
-	%lager:warning("AccessAllowed ~p", [_IdCons,AccessAllowed]),
-	%lager:warning("AccessAllowed& ~p", [lists:member(_IdPubl, AccessAllowed)]),
-	%lager:warning("LOOKUP ~p", [ets:lookup(?ETS_TABLE,_IdCons)]),
+  %% по данному пользователю в кэше информации нет
+
+  [] ->  AccessAllowed = requestServer(_IdCons), %% запрос к серверу
 	insert(_IdCons, AccessAllowed),
 	lists:member(_IdPubl, AccessAllowed);
-  [{_,LastTime, X}] ->  lager:warning("CACHE ~p", [InCache]),
-			{MegaSecs, Secs, Microsecs} = erlang:timestamp(),
+  %% по данному пользователю в кэше информация есть
+  [{_,LastTime, X}] ->  {MegaSecs, Secs, Microsecs} = erlang:timestamp(),
 			CurrentTime = (MegaSecs * 1000000) + Secs + (Microsecs / 1000000),
-			%lager:warning("TIME ~p", [CurrentTime-LastTime]),
+			%% информация из кэша счиатется акутальной, если была сохранена не более 5 минут назад
 			if
 			   CurrentTime-LastTime > 300000 ->  AccessAllowed = requestServer(_IdCons), 
 							     insert(_IdCons, AccessAllowed),
