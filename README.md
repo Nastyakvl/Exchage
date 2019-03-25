@@ -1,6 +1,6 @@
 # rabbit_auth_exchange
 
-Implementation of a new type of exchange for routing messages based on user security policies in the RabbitMQ system.
+Implementation of a new type of exchange point for routing messages based on user security policies in the RabbitMQ system.
 
 Routing key should be set as follow: "id.group.class.kind"
  - id - identificator of generator
