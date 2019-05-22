@@ -16,13 +16,13 @@ channel.queue_bind(exchange='testAuth',
 ```
 
 where:
-* 'testAuth' - name of eachange point
+* 'testAuth' - name of exchange point
 * 'con2' - name of client queue
 * '89.*.orange' - routing key
 * '109' - client id
 
 
-## Instalation 
+## Installation 
                                                
 Download file .ez
 [GitHub releases](https://github.com/Nastyakvl/Exchage/releases) 
